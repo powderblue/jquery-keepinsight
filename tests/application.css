@@ -1,0 +1,39 @@
+body {
+    margin: 0;
+}
+
+header {
+    background-color: #fff;
+    padding: 1em;
+    border-bottom: 3px solid #bbb;
+}
+
+header h1 {
+    margin-top: 0;
+}
+
+header p {
+    font-style: italic;
+    margin-bottom: 0;
+}
+
+main {
+    width: 700px;
+    margin: 0 auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    background-color: #fff;
+    padding: .5em 1em;
+    border-bottom: 1px dotted #ddd;
+}
+
+table thead th {
+    border-bottom: 3px solid #ddd;
+}
