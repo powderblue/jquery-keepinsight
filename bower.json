@@ -1,0 +1,25 @@
+{
+  "name": "jquery-stickit",
+  "homepage": "https://github.com/powderblue/jquery-stickit",
+  "authors": [
+    "Dan Bettles <danbettles@yahoo.co.uk>"
+  ],
+  "description": "jquery-stickit stops the selected elements (logo, navigation, table headers, etc) scrolling past the top of the page so they continue to stay on view.  Multiple elements can be 'stuck'; in this case, sticky elements will stack-up as you scroll down the page.",
+  "keywords": [
+    "scroll",
+    "scrolling",
+    "stop element scrolling",
+    "stay on view",
+    "sticky",
+    "sticky element",
+    "stack up"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
