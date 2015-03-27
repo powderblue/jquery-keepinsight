@@ -1,6 +1,7 @@
+/*jslint todo: true */
 /*globals jQuery, window*/
 /**
- * @author Dan Bettles <dan@powder-blue.com>
+ * @author Dan Bettles <danbettles@yahoo.co.uk>
  * @copyright Powder Blue Ltd 2015
  * @license MIT
  */
@@ -9,53 +10,45 @@
     'use strict';
 
     /**
-     * @param {jQuery} $el
-     * @returns {Stickit}
-     * @throws {String} If the table component is not a `thead`.
+     * @param {jQuery} $source
+     * @param {jQuery} $parent
+     * @param {jQuery} $clone
+     * @returns {Sticky}
      */
-    function Stickit($el) {
-        this.setEl($el);
-
-        if (this.getEl().closest('table').size()) {
-            if (!this.getEl().is('thead')) {
-                throw 'The table component is not a `thead`.';
-            }
-
-            this.setParentEl(this.getEl().closest('table'));
-        } else {
-            this.setParentEl(jQuery('body'));
-        }
+    function Sticky($source, $parent, $clone) {
+        this.setSourceEl($source);
+        this.setParentEl($parent);
+        this.setCloneEl($clone);
     }
 
-    Stickit.prototype = {
+    Sticky.prototype = {
 
         /**
          * @private
-         * @param {jQuery} $el
+         * @param {jQuery} $source
          * @returns {undefined}
          */
-        setEl: function ($el) {
-            this.$el = $el;
+        setSourceEl: function ($source) {
+            this.$source = $source;
         },
 
         /**
          * @returns {jQuery}
          */
-        getEl: function () {
-            return this.$el;
+        getSourceEl: function () {
+            return this.$source;
         },
 
         /**
          * @private
-         * @param {jQuery} $el
+         * @param {jQuery} $parent
          * @returns {undefined}
          */
-        setParentEl: function ($el) {
-            this.$parent = $el;
+        setParentEl: function ($parent) {
+            this.$parent = $parent;
         },
 
         /**
-         * @private
          * @returns {jQuery}
          */
         getParentEl: function () {
@@ -63,80 +56,254 @@
         },
 
         /**
-         * Creates a clone of the source element.
-         * 
          * @private
+         * @param {jQuery} $clone
+         * @returns {undefined}
+         */
+        setCloneEl: function ($clone) {
+            this.$clone = $clone;
+        },
+
+        /**
          * @returns {jQuery}
          */
-        createCloneEl: function () {
-            var $clone;
+        getCloneEl: function () {
+            return this.$clone;
+        },
 
-            if (this.getParentEl().is('table')) {
-                $clone = this.getParentEl().clone()
-                    .find('tbody')
-                        .remove()
-                    .end()
-                    .insertAfter(this.getParentEl());
-            } else {
-                $clone = this.getEl().clone()
-                    .insertAfter(this.getEl());
-            }
-
-            $clone
-                .hide()
-                .addClass('stickit-clone')
+        /**
+         * Shows the clone at the specified *y* pixel-position.
+         * 
+         * @param {Number} top
+         * @returns {undefined}
+         */
+        showClone: function (top) {
+            this.getCloneEl()
                 .css({
-                    position: 'fixed',
-                    top: 0,
-                    marginTop: 0,
-                    zIndex: 808
-                });
+                    left: this.getSourceEl().css('left'),
+                    top: String(top) + 'px',
+                    width: this.getSourceEl().css('width')
+                })
+                .show();
 
-            return $clone;
+            this.getSourceEl().css('visibility', 'hidden');
         },
 
         /**
          * @returns {undefined}
          */
-        setUp: function () {
-            var stickit = this,
-                $clone;
+        hideClone: function () {
+            this.getCloneEl().hide();
+            this.getSourceEl().css('visibility', 'visible');
+        },
 
-            $clone = this.createCloneEl();
+        /**
+         * Returns the height, in pixels, of the parent element.
+         * 
+         * @returns {Number}
+         */
+        getParentHeight: function () {
+            return this.getParentEl().outerHeight(false);
+        },
+
+        /**
+         * Returns the height, in pixels, of the clone.
+         * 
+         * @returns {Number}
+         */
+        getCloneHeight: function () {
+            return this.getCloneEl().outerHeight(false);
+        }
+    };
+
+    /**
+     * A `Sticker` manages the sticking.
+     * 
+     * @returns {Sticker}
+     */
+    function Sticker() {
+        this.setItems([]);
+        this.setMonitoring(false);
+    }
+
+    Sticker.CLONE_CSS_CLASS = 'stickit-clone';
+
+    Sticker.prototype = {
+
+        /**
+         * @private
+         * @param {Sticky[]} items
+         * @returns {undefined}
+         */
+        setItems: function (items) {
+            this.items = items;
+        },
+
+        /**
+         * @private
+         * @returns {Sticky[]}
+         */
+        getItems: function () {
+            return this.items;
+        },
+
+        /**
+         * @private
+         * @param {Sticky} item
+         * @returns {undefined}
+         */
+        addItem: function (item) {
+            this.items.push(item);
+        },
+
+        /**
+         * Creates a new `Sticky` from the specified source element.
+         * 
+         * @private
+         * @param {jQuery} $source
+         * @returns {Sticky}
+         */
+        createSticky: function ($source) {
+            var $parent,
+                $clone,
+                sticky;
+
+            $parent = $source.closest('table, body');
+
+            if ($parent.is('table') && !$source.is('thead')) {
+                throw 'The table component is not a `thead`.';
+            }
+
+            if ($parent.is('table')) {
+                $clone = $parent.clone()
+                    .find('tbody')
+                        .remove()
+                    .end()
+                    .insertAfter($parent);
+            } else {
+                $clone = $source.clone()
+                    .insertAfter($source);
+            }
+
+            //@todo Move the following into `Sticky`?
+            $clone
+                .addClass(Sticker.CLONE_CSS_CLASS)
+                .css({
+                    position: 'fixed',
+                    marginTop: 0,
+                    zIndex: 808
+                });
+
+            sticky = new Sticky($source, $parent, $clone);
+            sticky.hideClone();
+
+            return sticky;
+        },
+
+        /**
+         * Convenience method that adds a new `Sticky`, created from the specified `jQuery`, to the array of items 
+         * managed by the `Sticker` and then makes the `Sticker` start monitoring, if necessary.
+         * 
+         * @param {jQuery} $el
+         * @returns {undefined}
+         */
+        addEl: function ($el) {
+            this.addItem(this.createSticky($el));
+
+            //Make sure the `Sticker` is monitoring.
+            this.monitor();
+        },
+
+        /**
+         * @private
+         * @param {Boolean} monitoring
+         * @returns {undefined}
+         */
+        setMonitoring: function (monitoring) {
+            this.monitoring = monitoring;
+        },
+
+        /**
+         * @private
+         * @returns {Boolean}
+         */
+        isMonitoring: function () {
+            return this.monitoring;
+        },
+
+        /**
+         * Makes the `Sticker` monitor the sticky items it knows about.
+         * 
+         * @private
+         * @returns {undefined}
+         */
+        monitor: function () {
+            if (this.isMonitoring()) {
+                return;
+            }
+
+            var sticker = this,
+                sticking = false,  //Not currently sticking elements.
+                lastScrollTop;  //The scroll-top the last time we attempted to stick elements.
+
+            this.setMonitoring(true);
 
             window.setInterval(function () {
-                var windowScrollTop,
-                    refOffset,
-                    refBottom;
+                var scrollTop,
+                    nextCloneTop = 0;
 
-                windowScrollTop = jQuery(window).scrollTop();
-                refOffset = stickit.getEl().offset();
-                refBottom = (refOffset.top + stickit.getParentEl().height()) - $clone.height();
-
-                //Show the sticky, cloned element if the user is scrolling within the reference element.
-                if (windowScrollTop >= refOffset.top && windowScrollTop < refBottom) {
-                    $clone
-                        .css({
-                            left: String(refOffset.left) + 'px',
-                            top: 0,
-                            width: stickit.getEl().css('width')
-                        })
-                        .show();
-
-                    stickit.getEl().css('visibility', 'hidden');
-                } else {
-                    $clone.hide();
-                    stickit.getEl().css('visibility', 'visible');
+                //Help reduce the chances of weirdness caused by processing overlapping.
+                if (sticking) {
+                    return;
                 }
+
+                scrollTop = jQuery(window).scrollTop();
+
+                //If the page is in the same position as before then we needn't do any heavy lifting.
+                if (scrollTop === lastScrollTop) {
+                    return;
+                }
+
+                sticking = true;
+                lastScrollTop = scrollTop;
+
+                jQuery.each(sticker.getItems(), function (i, item) {
+                    var currCloneHeight,
+                        minItemScrollTop,
+                        maxItemScrollTop;
+
+                    currCloneHeight = item.getCloneHeight();
+
+                    //The clone will appear sooner if `nextCloneTop` is non-zero (i.e. if at least one clone is already 
+                    //locked in place).  More specifically, it will appear just as the top of the source element touches 
+                    //the bottom of the last visible clone.
+                    minItemScrollTop = item.getSourceEl().offset().top - nextCloneTop;
+
+                    //Subtract the height of the clone so the clone disappears at the end of its parent.
+                    maxItemScrollTop = minItemScrollTop + (item.getParentHeight() - currCloneHeight);
+
+                    if (scrollTop >= minItemScrollTop && scrollTop < maxItemScrollTop) {
+                        item.showClone(nextCloneTop);
+                        nextCloneTop += currCloneHeight;
+                    } else {
+                        item.hideClone();
+                    }
+                });
+
+                sticking = false;
             }, 10);
         }
     };
+
+    var sticker;
+
+    sticker = new Sticker();
 
     jQuery.fn.extend({
 
         stickit: function () {
             return this.each(function () {
-                (new Stickit(jQuery(this))).setUp();
+                sticker.addEl(jQuery(this));
             });
         }
     });
