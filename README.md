@@ -41,3 +41,11 @@ jQuery('header, table thead').keepInSight();
 The plugin adds the class `keepinsight-clone` to the elements that stay in sight - these are clones of the targetted elements.
 
 `thead` elements are not cloned as-is: the clone of a `thead` is a copy of the table it resides in minus its `tbody`. The plugin does this to ensure the formatting of the `thead` is preserved.
+
+## Installation
+
+Install using Bower, thus:
+
+```sh
+bower install jquery-keepinsight
+```
