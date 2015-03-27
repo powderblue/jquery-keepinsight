@@ -1,11 +1,13 @@
 {
-  "name": "jquery-stickit",
-  "homepage": "https://github.com/powderblue/jquery-stickit",
+  "name": "jquery-keepinsight",
+  "homepage": "https://github.com/powderblue/jquery-keepinsight",
   "authors": [
     "Dan Bettles <danbettles@yahoo.co.uk>"
   ],
-  "description": "jquery-stickit stops the selected elements (logo, navigation, table headers, etc) scrolling past the top of the page so they continue to stay on view.  Multiple elements can be 'stuck'; in this case, sticky elements will stack-up as you scroll down the page.",
+  "description": "jquery-keepinsight stops the selected elements (logo, navigation, table headers, etc) scrolling past the top of the page so they continue to stay in sight.  Multiple elements can be kept in sight; in this case, multiple 'sticky' elements will stack-up as you scroll down the page.",
   "keywords": [
+    "keep in sight",
+    "keep element in sight",
     "scroll",
     "scrolling",
     "stop element scrolling",

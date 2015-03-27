@@ -126,7 +126,7 @@
         this.setMonitoring(false);
     }
 
-    Sticker.CLONE_CSS_CLASS = 'stickit-clone';
+    Sticker.CLONE_CSS_CLASS = 'keepinsight-clone';
 
     Sticker.prototype = {
 
@@ -301,7 +301,7 @@
 
     jQuery.fn.extend({
 
-        stickit: function () {
+        keepInSight: function () {
             return this.each(function () {
                 sticker.addEl(jQuery(this));
             });
