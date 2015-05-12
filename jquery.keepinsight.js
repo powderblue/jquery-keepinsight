@@ -1,4 +1,4 @@
-/*jslint todo: true */
+/*jslint this: true*/
 /*globals jQuery, window*/
 /**
  * @author Dan Bettles <danbettles@yahoo.co.uk>
@@ -20,6 +20,40 @@
         this.setParentEl($parent);
         this.setCloneEl($clone);
     }
+
+    /**
+     * Creates a new `Sticky` from the specified source element.
+     *
+     * @param {jQuery} $source
+     * @returns {Sticky}
+     */
+    Sticky.create = function ($source) {
+        var $parent,
+            $clone,
+            sticky;
+
+        $parent = $source.closest('table, body');
+
+        if ($parent.is('table') && !$source.is('thead')) {
+            throw 'The table component is not a `thead`.';
+        }
+
+        if ($parent.is('table')) {
+            $clone = $parent.clone()
+                .find('tbody')
+                    .remove()
+                .end()
+                .insertAfter($parent);
+        } else {
+            $clone = $source.clone()
+                .insertAfter($source);
+        }
+
+        sticky = new Sticky($source, $parent, $clone);
+        sticky.setUp();
+
+        return sticky;
+    };
 
     Sticky.prototype = {
 
@@ -98,6 +132,47 @@
         },
 
         /**
+         * Refreshes the `Sticky`.
+         *
+         * @returns {undefined}
+         */
+        refresh: function () {
+            var headerCellWidths = [];
+
+            if (this.getCloneEl().is('table')) {
+                //Get the width of each cell in the source element (a `thead`).
+                this.getSourceEl().find('th').each(function () {
+                    headerCellWidths.push(jQuery(this).width());
+                });
+
+                //Fix the width of each cell in the clone.  The cells in the clone won't naturally line-up with the
+                //cells in the source because there won't be any content sizing them.
+                this.getCloneEl().find('th').each(function (i) {
+                    jQuery(this).width(headerCellWidths[i]);
+                });
+            }
+        },
+
+        /**
+         * Builds the UI.
+         *
+         * @returns {undefined}
+         */
+        setUp: function () {
+            this.hideClone();
+
+            this.getCloneEl()
+                .addClass('keepinsight-clone')
+                .css({
+                    position: 'fixed',
+                    marginTop: 0,
+                    zIndex: 808
+                });
+
+            this.refresh();
+        },
+
+        /**
          * Returns the height, in pixels, of the parent element.
          * 
          * @returns {Number}
@@ -125,8 +200,6 @@
         this.setItems([]);
         this.setMonitoring(false);
     }
-
-    Sticker.CLONE_CSS_CLASS = 'keepinsight-clone';
 
     Sticker.prototype = {
 
@@ -157,50 +230,6 @@
         },
 
         /**
-         * Creates a new `Sticky` from the specified source element.
-         * 
-         * @private
-         * @param {jQuery} $source
-         * @returns {Sticky}
-         */
-        createSticky: function ($source) {
-            var $parent,
-                $clone,
-                sticky;
-
-            $parent = $source.closest('table, body');
-
-            if ($parent.is('table') && !$source.is('thead')) {
-                throw 'The table component is not a `thead`.';
-            }
-
-            if ($parent.is('table')) {
-                $clone = $parent.clone()
-                    .find('tbody')
-                        .remove()
-                    .end()
-                    .insertAfter($parent);
-            } else {
-                $clone = $source.clone()
-                    .insertAfter($source);
-            }
-
-            //@todo Move the following into `Sticky`?
-            $clone
-                .addClass(Sticker.CLONE_CSS_CLASS)
-                .css({
-                    position: 'fixed',
-                    marginTop: 0,
-                    zIndex: 808
-                });
-
-            sticky = new Sticky($source, $parent, $clone);
-            sticky.hideClone();
-
-            return sticky;
-        },
-
-        /**
          * Convenience method that adds a new `Sticky`, created from the specified `jQuery`, to the array of items 
          * managed by the `Sticker` and then makes the `Sticker` start monitoring, if necessary.
          * 
@@ -208,7 +237,7 @@
          * @returns {undefined}
          */
         addEl: function ($el) {
-            this.addItem(this.createSticky($el));
+            this.addItem(Sticky.create($el));
 
             //Make sure the `Sticker` is monitoring.
             this.monitor();
@@ -232,6 +261,15 @@
         },
 
         /**
+         * @private
+         * @param {Function} callback
+         * @returns {undefined}
+         */
+        eachItem: function (callback) {
+            jQuery.each(this.getItems(), callback);
+        },
+
+        /**
          * Makes the `Sticker` monitor the sticky items it knows about.
          * 
          * @private
@@ -247,6 +285,12 @@
                 lastScrollTop;  //The scroll-top the last time we attempted to stick elements.
 
             this.setMonitoring(true);
+
+            jQuery(window).resize(function () {
+                sticker.eachItem(function (ignore, item) {
+                    item.refresh();
+                });
+            });
 
             window.setInterval(function () {
                 var scrollTop,
@@ -267,7 +311,7 @@
                 sticking = true;
                 lastScrollTop = scrollTop;
 
-                jQuery.each(sticker.getItems(), function (i, item) {
+                sticker.eachItem(function (ignore, item) {
                     var currCloneHeight,
                         minItemScrollTop,
                         maxItemScrollTop;
