@@ -107,7 +107,7 @@
 
         /**
          * Shows the clone at the specified *y* pixel-position.
-         * 
+         *
          * @param {Number} top
          * @returns {undefined}
          */
@@ -173,8 +173,16 @@
         },
 
         /**
+         * @returns {undefined}
+         */
+        tearDown: function () {
+            this.hideClone();
+            this.getCloneEl().remove();
+        },
+
+        /**
          * Returns the height, in pixels, of the parent element.
-         * 
+         *
          * @returns {Number}
          */
         getParentHeight: function () {
@@ -183,7 +191,7 @@
 
         /**
          * Returns the height, in pixels, of the clone.
-         * 
+         *
          * @returns {Number}
          */
         getCloneHeight: function () {
@@ -193,7 +201,7 @@
 
     /**
      * A `Sticker` manages the sticking.
-     * 
+     *
      * @returns {Sticker}
      */
     function Sticker() {
@@ -230,9 +238,30 @@
         },
 
         /**
-         * Convenience method that adds a new `Sticky`, created from the specified `jQuery`, to the array of items 
+         * @private
+         * @param {Function} callback
+         * @returns {undefined}
+         */
+        eachItem: function (callback) {
+            jQuery.each(this.getItems(), callback);
+        },
+
+        /**
+         * @private
+         * @returns {undefined}
+         */
+        destroyItems: function () {
+            this.eachItem(function (ignore, item) {
+                item.tearDown();
+            });
+
+            this.setItems([]);
+        },
+
+        /**
+         * Convenience method that adds a new `Sticky`, created from the specified `jQuery`, to the array of items
          * managed by the `Sticker` and then makes the `Sticker` start monitoring, if necessary.
-         * 
+         *
          * @param {jQuery} $el
          * @returns {undefined}
          */
@@ -240,7 +269,7 @@
             this.addItem(Sticky.create($el));
 
             //Make sure the `Sticker` is monitoring.
-            this.monitor();
+            this.startMonitoring();
         },
 
         /**
@@ -262,37 +291,46 @@
 
         /**
          * @private
-         * @param {Function} callback
+         * @param {type} intervalId
          * @returns {undefined}
          */
-        eachItem: function (callback) {
-            jQuery.each(this.getItems(), callback);
+        setIntervalId: function (intervalId) {
+            this.intervalId = intervalId;
+        },
+
+        /**
+         * @private
+         * @return {type}
+         */
+        getIntervalId: function () {
+            return this.intervalId;
         },
 
         /**
          * Makes the `Sticker` monitor the sticky items it knows about.
-         * 
+         *
          * @private
          * @returns {undefined}
          */
-        monitor: function () {
+        startMonitoring: function () {
             if (this.isMonitoring()) {
                 return;
             }
 
             var sticker = this,
                 sticking = false,  //Not currently sticking elements.
-                lastScrollTop;  //The scroll-top the last time we attempted to stick elements.
+                lastScrollTop,
+                intervalId;  //The scroll-top the last time we attempted to stick elements.
 
             this.setMonitoring(true);
 
-            jQuery(window).resize(function () {
+            jQuery(window).on('resize.keepInSight', function () {
                 sticker.eachItem(function (ignore, item) {
                     item.refresh();
                 });
             });
 
-            window.setInterval(function () {
+            intervalId = window.setInterval(function () {
                 var scrollTop,
                     nextCloneTop = 0;
 
@@ -318,8 +356,8 @@
 
                     currCloneHeight = item.getCloneHeight();
 
-                    //The clone will appear sooner if `nextCloneTop` is non-zero (i.e. if at least one clone is already 
-                    //locked in place).  More specifically, it will appear just as the top of the source element touches 
+                    //The clone will appear sooner if `nextCloneTop` is non-zero (i.e. if at least one clone is already
+                    //locked in place).  More specifically, it will appear just as the top of the source element touches
                     //the bottom of the last visible clone.
                     minItemScrollTop = item.getSourceEl().offset().top - nextCloneTop;
 
@@ -336,12 +374,56 @@
 
                 sticking = false;
             }, 10);
+
+            this.setIntervalId(intervalId);
+        },
+
+        /**
+         * @private
+         * @returns {undefined}
+         */
+        stopMonitoring: function () {
+            if (!this.isMonitoring()) {
+                return;
+            }
+
+            jQuery(window).off('.keepInSight');
+
+            window.clearInterval(this.getIntervalId());
+            this.setIntervalId(undefined);
+
+            this.setMonitoring(false);
+        },
+
+        /**
+         * Turns off jquery-keepinsight on the current page.
+         *
+         * @returns {undefined}
+         */
+        destroyAction: function () {
+            this.destroyItems();
+            this.stopMonitoring();
         }
     };
 
     var sticker;
 
     sticker = new Sticker();
+
+    jQuery.extend({
+
+        keepInSight: function (action) {
+            var methodName;
+
+            methodName = action + 'Action';
+
+            if (!(sticker[methodName] instanceof Function)) {
+                throw 'The action ' + action + ' does not exist.';
+            }
+
+            return sticker[methodName]();
+        }
+    });
 
     jQuery.fn.extend({
 

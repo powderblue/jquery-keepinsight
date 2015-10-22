@@ -39,3 +39,17 @@ table td {
 table thead th {
     border-bottom: 3px solid #ddd;
 }
+
+form.destroy {
+    text-align: center;
+    margin: 1em 0;
+}
+
+form.destroy input {
+    width: 120px;
+    height: 40px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: #f00;
+    color: #fff;
+}
