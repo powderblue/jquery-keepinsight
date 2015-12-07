@@ -13,43 +13,60 @@
      * @param {jQuery} $source
      * @param {jQuery} $parent
      * @param {jQuery} $clone
+     * @param {Object} config
      * @returns {Sticky}
      */
-    function Sticky($source, $parent, $clone) {
+    function Sticky($source, $parent, $clone, config) {
         this.setSourceEl($source);
         this.setParentEl($parent);
         this.setCloneEl($clone);
+
+        this.setConfig(jQuery.extend({
+            edge: Sticky.EDGE_TOP
+        }, config));
     }
+
+    Sticky.EDGE_TOP = 'top';
+
+    Sticky.EDGE_BOTTOM = 'bottom';
 
     /**
      * Creates a new `Sticky` from the specified source element.
      *
      * @param {jQuery} $source
+     * @param {Object} config
      * @returns {Sticky}
      */
-    Sticky.create = function ($source) {
-        var $parent,
+    Sticky.create = function ($source, config) {
+        var $container,
             $clone,
             sticky;
 
-        $parent = $source.closest('table, body');
-
-        if ($parent.is('table') && !$source.is('thead')) {
-            throw 'The table component is not a `thead`.';
-        }
-
-        if ($parent.is('table')) {
-            $clone = $parent.clone()
-                .find('tbody')
-                    .remove()
-                .end()
-                .insertAfter($parent);
+        if (config.$container instanceof jQuery) {
+            $container = config.$container;
         } else {
-            $clone = $source.clone()
-                .insertAfter($source);
+            $container = $source.closest('table, body');
+
+            if ($container.is('table') && !$source.is('thead')) {
+                throw 'The table component is not a `thead`.';
+            }
+
+            //Tables must be handled differently to prevent us making a mess of the page.
+            if ($container.is('table')) {
+                $clone = $container.clone()
+                    .find('tbody')
+                        .remove()
+                    .end()
+                    .insertAfter($container);
+            }
         }
 
-        sticky = new Sticky($source, $parent, $clone);
+        if (!$clone) {
+            //How we usually create our clones.
+            $clone = $source.clone().insertAfter($source);
+        }
+
+        sticky = new Sticky($source, $container, $clone, config);
         sticky.setUp();
 
         return sticky;
@@ -106,18 +123,40 @@
         },
 
         /**
+         * @private
+         * @param {Object} config
+         * @return undefined
+         */
+        setConfig: function (config) {
+            this.config = config;
+        },
+
+        /**
+         * @returns {Object}
+         */
+        getConfig: function () {
+            return this.config;
+        },
+
+        /**
          * Shows the clone at the specified *y* pixel-position.
          *
-         * @param {Number} top
+         * @param {String} originName  Either `top` or `bottom`.
+         * @param {Number} offset
          * @returns {undefined}
          */
-        showClone: function (top) {
+        showClone: function (originName, offset) {
+            var css;
+
+            css = {
+                left: this.getSourceEl().css('left'),
+                width: this.getSourceEl().css('width')
+            };
+
+            css[originName] = String(offset) + 'px';
+
             this.getCloneEl()
-                .css({
-                    left: this.getSourceEl().css('left'),
-                    top: String(top) + 'px',
-                    width: this.getSourceEl().css('width')
-                })
+                .css(css)
                 .show();
 
             this.getSourceEl().css('visibility', 'hidden');
@@ -146,7 +185,7 @@
                 });
 
                 //Fix the width of each cell in the clone.  The cells in the clone won't naturally line-up with the
-                //cells in the source because there won't be any content sizing them.
+                //cells in the source because there won't be any table content sizing them.
                 this.getCloneEl().find('th').each(function (i) {
                     jQuery(this).width(headerCellWidths[i]);
                 });
@@ -229,7 +268,6 @@
         },
 
         /**
-         * @private
          * @param {Sticky} item
          * @returns {undefined}
          */
@@ -256,20 +294,6 @@
             });
 
             this.setItems([]);
-        },
-
-        /**
-         * Convenience method that adds a new `Sticky`, created from the specified `jQuery`, to the array of items
-         * managed by the `Sticker` and then makes the `Sticker` start monitoring, if necessary.
-         *
-         * @param {jQuery} $el
-         * @returns {undefined}
-         */
-        addEl: function ($el) {
-            this.addItem(Sticky.create($el));
-
-            //Make sure the `Sticker` is monitoring.
-            this.startMonitoring();
         },
 
         /**
@@ -309,7 +333,6 @@
         /**
          * Makes the `Sticker` monitor the sticky items it knows about.
          *
-         * @private
          * @returns {undefined}
          */
         startMonitoring: function () {
@@ -319,8 +342,8 @@
 
             var sticker = this,
                 sticking = false,  //Not currently sticking elements.
-                lastScrollTop,
-                intervalId;  //The scroll-top the last time we attempted to stick elements.
+                lastScrollTop,  //The scroll-top the last time we attempted to stick elements.
+                intervalId;
 
             this.setMonitoring(true);
 
@@ -332,7 +355,9 @@
 
             intervalId = window.setInterval(function () {
                 var scrollTop,
-                    nextCloneTop = 0;
+                    topNextCloneOffset = 0,
+                    scrollBottom,
+                    bottomNextCloneOffset = 0;
 
                 //Help reduce the chances of weirdness caused by processing overlapping.
                 if (sticking) {
@@ -346,29 +371,51 @@
                     return;
                 }
 
-                sticking = true;
                 lastScrollTop = scrollTop;
+
+                sticking = true;
+
+                scrollBottom = scrollTop + jQuery(window).height();
 
                 sticker.eachItem(function (ignore, item) {
                     var currCloneHeight,
                         minItemScrollTop,
-                        maxItemScrollTop;
+                        maxItemScrollTop,
+                        itemConfig,
+                        itemOffset,
+                        minItemScrollBottom,
+                        maxItemScrollBottom;
 
+                    itemConfig = item.getConfig();
+                    itemOffset = item.getSourceEl().offset();
                     currCloneHeight = item.getCloneHeight();
 
-                    //The clone will appear sooner if `nextCloneTop` is non-zero (i.e. if at least one clone is already
-                    //locked in place).  More specifically, it will appear just as the top of the source element touches
-                    //the bottom of the last visible clone.
-                    minItemScrollTop = item.getSourceEl().offset().top - nextCloneTop;
+                    if (itemConfig.edge === Sticky.EDGE_TOP) {
+                        //The clone will appear sooner if `topNextCloneOffset` is non-zero (i.e. if at least one clone
+                        //is already locked in place).  More specifically, it will appear just as the top of the source
+                        //element touches the bottom of the last visible clone.
+                        minItemScrollTop = itemOffset.top - topNextCloneOffset;
 
-                    //Subtract the height of the clone so the clone disappears at the end of its parent.
-                    maxItemScrollTop = minItemScrollTop + (item.getParentHeight() - currCloneHeight);
+                        //Subtract the height of the clone so the clone disappears at the end of its parent.
+                        maxItemScrollTop = minItemScrollTop + (item.getParentHeight() - currCloneHeight);
 
-                    if (scrollTop >= minItemScrollTop && scrollTop < maxItemScrollTop) {
-                        item.showClone(nextCloneTop);
-                        nextCloneTop += currCloneHeight;
-                    } else {
-                        item.hideClone();
+                        if (scrollTop >= minItemScrollTop && scrollTop < maxItemScrollTop) {
+                            item.showClone('top', topNextCloneOffset);
+                            topNextCloneOffset += currCloneHeight;
+                        } else {
+                            item.hideClone();
+                        }
+                    } else if (itemConfig.edge === Sticky.EDGE_BOTTOM) {
+                        minItemScrollBottom = item.getParentEl().offset().top + currCloneHeight;
+                        maxItemScrollBottom = itemOffset.top + currCloneHeight;
+
+                        if (scrollBottom >= minItemScrollBottom && scrollBottom <= maxItemScrollBottom) {
+                            item.showClone('bottom', bottomNextCloneOffset);
+                            bottomNextCloneOffset += currCloneHeight;
+                            scrollBottom -= bottomNextCloneOffset;
+                        } else {
+                            item.hideClone();
+                        }
                     }
                 });
 
@@ -407,11 +454,16 @@
     };
 
     var sticker;
-
     sticker = new Sticker();
 
     jQuery.extend({
 
+        /**
+         * Executes actions that apply to the sticker or to all stickies.
+         *
+         * @param {String} action
+         * @return {variant}
+         */
         keepInSight: function (action) {
             var methodName;
 
@@ -427,9 +479,21 @@
 
     jQuery.fn.extend({
 
-        keepInSight: function () {
+        /**
+         * Makes the selected elements stay in sight.
+         *
+         * @param {Object} [config]
+         * @returns {jQuery}
+         */
+        keepInSight: function (config) {
             return this.each(function () {
-                sticker.addEl(jQuery(this));
+                var sticky;
+
+                sticky = Sticky.create(jQuery(this), config || {});
+                sticker.addItem(sticky);
+
+                //Make sure the `Sticker` is monitoring.
+                sticker.startMonitoring();
             });
         }
     });

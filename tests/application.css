@@ -1,10 +1,21 @@
 body {
     margin: 0;
+    font-size: 16px;
+}
+
+header,
+footer {
+    background-color: #fff;
+    padding: 1em;
+}
+
+header p,
+footer p {
+    font-style: italic;
+    margin-bottom: 0;
 }
 
 header {
-    background-color: #fff;
-    padding: 1em;
     border-bottom: 3px solid #bbb;
 }
 
@@ -12,9 +23,8 @@ header h1 {
     margin-top: 0;
 }
 
-header p {
-    font-style: italic;
-    margin-bottom: 0;
+footer {
+    border-top: 3px solid #bbb;
 }
 
 main {
@@ -40,16 +50,32 @@ table thead th {
     border-bottom: 3px solid #ddd;
 }
 
-form.destroy {
+form {
+    overflow: auto;
+}
+
+form > div {
+    margin: 1em 0;
+}
+
+body#destroy form {
     text-align: center;
     margin: 1em 0;
 }
 
-form.destroy input {
+body#destroy form input[type="submit"] {
     width: 120px;
     height: 40px;
     font-size: 1.2em;
     font-weight: bold;
     background-color: #f00;
     color: #fff;
+}
+
+body#bottom-sticky main section.item-2 {
+    background-color: #00f;
+}
+
+body#bottom-sticky main .keepinsight-clone {
+    background-color: #f00;
 }
