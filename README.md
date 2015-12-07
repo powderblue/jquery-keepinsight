@@ -1,6 +1,6 @@
 # jquery-keepinsight
 
-jquery-keepinsight stops the selected elements scrolling past the top of the page so they continue to stay in sight.  
+jquery-keepinsight stops the selected elements scrolling past the top of the page so they continue to stay in sight.
 
 The plugin can be used to keep your main header on screen at all times, and to keep table headers around while you scan through the associated data - the result is similar to 'freezing' rows in a spreadsheet.  Multiple elements can be kept in sight, so you can do all of the above in the same page, should you wish; multiple 'sticky' elements will stack-up as you scroll down the page.
 
