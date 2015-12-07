@@ -22,13 +22,16 @@
         this.setCloneEl($clone);
 
         this.setConfig(jQuery.extend({
-            edge: Sticky.EDGE_TOP
+            edge: Sticky.EDGE_TOP,
+            animate: false
         }, config));
     }
 
     Sticky.EDGE_TOP = 'top';
 
     Sticky.EDGE_BOTTOM = 'bottom';
+
+    Sticky.ANIM_DURATION = 250;
 
     /**
      * Creates a new `Sticky` from the specified source element.
@@ -139,13 +142,27 @@
         },
 
         /**
+         * @private
+         * @param {Number} userValue
+         * @returns {Number}
+         */
+        calculateAnimationDuration: function (userValue) {
+            if (userValue !== undefined) {
+                return userValue;
+            }
+
+            return this.getConfig().animate ? Sticky.ANIM_DURATION : 0;
+        },
+
+        /**
          * Shows the clone at the specified *y* pixel-position.
          *
          * @param {String} originName  Either `top` or `bottom`.
          * @param {Number} offset
+         * @param {Number} [duration]
          * @returns {undefined}
          */
-        showClone: function (originName, offset) {
+        showClone: function (originName, offset, duration) {
             var css;
 
             css = {
@@ -157,16 +174,17 @@
 
             this.getCloneEl()
                 .css(css)
-                .show();
+                .fadeIn(this.calculateAnimationDuration(duration));
 
             this.getSourceEl().css('visibility', 'hidden');
         },
 
         /**
+         * @param {Number} [duration]
          * @returns {undefined}
          */
-        hideClone: function () {
-            this.getCloneEl().hide();
+        hideClone: function (duration) {
+            this.getCloneEl().fadeOut(this.calculateAnimationDuration(duration));
             this.getSourceEl().css('visibility', 'visible');
         },
 
@@ -198,7 +216,7 @@
          * @returns {undefined}
          */
         setUp: function () {
-            this.hideClone();
+            this.hideClone(0);
 
             this.getCloneEl()
                 .addClass('keepinsight-clone')
@@ -215,7 +233,7 @@
          * @returns {undefined}
          */
         tearDown: function () {
-            this.hideClone();
+            this.hideClone(0);
             this.getCloneEl().remove();
         },
 
