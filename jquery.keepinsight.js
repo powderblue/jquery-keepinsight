@@ -1,5 +1,5 @@
-/*jslint this: true*/
-/*globals jQuery, window*/
+/*jslint browser:true this:true multivar:true*/
+/*global jQuery, window*/
 /**
  * @author Dan Bettles <danbettles@yahoo.co.uk>
  * @copyright Powder Blue Ltd 2015
@@ -7,7 +7,7 @@
  */
 
 (function () {
-    'use strict';
+    "use strict";
 
     /**
      * @param {jQuery} $source
@@ -27,9 +27,9 @@
         }, config));
     }
 
-    Sticky.EDGE_TOP = 'top';
+    Sticky.EDGE_TOP = "top";
 
-    Sticky.EDGE_BOTTOM = 'bottom';
+    Sticky.EDGE_BOTTOM = "bottom";
 
     Sticky.ANIM_DURATION = 250;
 
@@ -48,17 +48,17 @@
         if (config.$container instanceof jQuery) {
             $container = config.$container;
         } else {
-            $container = $source.closest('table, body');
+            $container = $source.closest("table, body");
 
-            if ($container.is('table') && !$source.is('thead')) {
-                throw 'The table component is not a `thead`.';
+            if ($container.is("table") && !$source.is("thead")) {
+                throw "The table component is not a `thead`.";
             }
 
             //Tables must be handled differently to prevent us making a mess of the page.
-            if ($container.is('table')) {
+            if ($container.is("table")) {
                 $clone = $container.clone()
-                    .find('tbody')
-                        .remove()
+                    .find("tbody")
+                    .remove()
                     .end()
                     .insertAfter($container);
             }
@@ -151,7 +151,9 @@
                 return userValue;
             }
 
-            return this.getConfig().animate ? Sticky.ANIM_DURATION : 0;
+            return this.getConfig().animate
+                ? Sticky.ANIM_DURATION
+                : 0;
         },
 
         /**
@@ -166,17 +168,17 @@
             var css;
 
             css = {
-                left: this.getSourceEl().css('left'),
-                width: this.getSourceEl().css('width')
+                left: this.getSourceEl().css("left"),
+                width: this.getSourceEl().css("width")
             };
 
-            css[originName] = String(offset) + 'px';
+            css[originName] = String(offset) + "px";
 
             this.getCloneEl()
                 .css(css)
                 .fadeIn(this.calculateAnimationDuration(duration));
 
-            this.getSourceEl().css('visibility', 'hidden');
+            this.getSourceEl().css("visibility", "hidden");
         },
 
         /**
@@ -185,7 +187,7 @@
          */
         hideClone: function (duration) {
             this.getCloneEl().fadeOut(this.calculateAnimationDuration(duration));
-            this.getSourceEl().css('visibility', 'visible');
+            this.getSourceEl().css("visibility", "visible");
         },
 
         /**
@@ -196,15 +198,15 @@
         refresh: function () {
             var headerCellWidths = [];
 
-            if (this.getCloneEl().is('table')) {
+            if (this.getCloneEl().is("table")) {
                 //Get the width of each cell in the source element (a `thead`).
-                this.getSourceEl().find('th').each(function () {
+                this.getSourceEl().find("th").each(function () {
                     headerCellWidths.push(jQuery(this).width());
                 });
 
                 //Fix the width of each cell in the clone.  The cells in the clone won't naturally line-up with the
                 //cells in the source because there won't be any table content sizing them.
-                this.getCloneEl().find('th').each(function (i) {
+                this.getCloneEl().find("th").each(function (i) {
                     jQuery(this).width(headerCellWidths[i]);
                 });
             }
@@ -219,9 +221,9 @@
             this.hideClone(0);
 
             this.getCloneEl()
-                .addClass('keepinsight-clone')
+                .addClass("keepinsight-clone")
                 .css({
-                    position: 'fixed',
+                    position: "fixed",
                     marginTop: 0,
                     zIndex: 808
                 });
@@ -286,11 +288,44 @@
         },
 
         /**
-         * @param {Sticky} item
+         * @param {Sticky} newItem
          * @returns {undefined}
          */
-        addItem: function (item) {
-            this.items.push(item);
+        addItem: function (newItem) {
+            var allItems,
+                $sources,
+                docOrderedItems;
+
+            //Create a new array comprising the existing items plus the new item.
+            allItems = this.items.slice();
+            allItems.push(newItem);
+
+            $sources = jQuery();
+
+            //Build a jQuery containing all the source elements.
+            jQuery.each(allItems, function (ignore, item) {
+                $sources = $sources.add(item.getSourceEl());
+            });
+
+            docOrderedItems = [];
+
+            //Do a `find()` on the source elements to put them in document order.
+            jQuery($sources).each(function () {
+                var $currSource = jQuery(this),
+                    currSourceAssocdItem;
+
+                //Get the item associated with the current source element.
+                jQuery.each(allItems, function (ignore, item) {
+                    if (item.getSourceEl().is($currSource)) {
+                        currSourceAssocdItem = item;
+                        return false;
+                    }
+                });
+
+                docOrderedItems.push(currSourceAssocdItem);
+            });
+
+            this.items = docOrderedItems;
         },
 
         /**
@@ -365,7 +400,7 @@
 
             this.setMonitoring(true);
 
-            jQuery(window).on('resize.keepInSight', function () {
+            jQuery(window).on("resize.keepInSight", function () {
                 sticker.eachItem(function (ignore, item) {
                     item.refresh();
                 });
@@ -418,7 +453,7 @@
                         maxItemScrollTop = minItemScrollTop + (item.getParentHeight() - currCloneHeight);
 
                         if (scrollTop >= minItemScrollTop && scrollTop < maxItemScrollTop) {
-                            item.showClone('top', topNextCloneOffset);
+                            item.showClone("top", topNextCloneOffset);
                             topNextCloneOffset += currCloneHeight;
                         } else {
                             item.hideClone();
@@ -428,7 +463,7 @@
                         maxItemScrollBottom = itemOffset.top + currCloneHeight;
 
                         if (scrollBottom >= minItemScrollBottom && scrollBottom <= maxItemScrollBottom) {
-                            item.showClone('bottom', bottomNextCloneOffset);
+                            item.showClone("bottom", bottomNextCloneOffset);
                             bottomNextCloneOffset += currCloneHeight;
                             scrollBottom -= bottomNextCloneOffset;
                         } else {
@@ -452,7 +487,7 @@
                 return;
             }
 
-            jQuery(window).off('.keepInSight');
+            jQuery(window).off(".keepInSight");
 
             window.clearInterval(this.getIntervalId());
             this.setIntervalId(undefined);
@@ -485,10 +520,10 @@
         keepInSight: function (action) {
             var methodName;
 
-            methodName = action + 'Action';
+            methodName = action + "Action";
 
-            if (!(sticker[methodName] instanceof Function)) {
-                throw 'The action ' + action + ' does not exist.';
+            if (typeof sticker[methodName] !== "function") {
+                throw "The action " + action + " does not exist.";
             }
 
             return sticker[methodName]();
